@@ -3,17 +3,13 @@ set -e
 set -u
 set -o pipefail
 
-# Testing testing
-
 strat_park="/Volumes/MRI/STRAT-PARK"
 sn_r="$HOME/masterproject/SN_R_probatlas27_50.nii"
 sn_l="$HOME/masterproject/SN_L_probatlas27_50.nii"
 sn="$HOME/masterproject/SN_mask.nii.gz"
 lc="$HOME/masterproject/LC_mask.nii.gz"
 
-header=("patient_id SN-STAGE_CROWN_PD_MAP LC-STAGE_CROWN_PD_MAP SN-STAGE_CROWN_R2S LC-STAGE_CROWN_R2S SN-STAGE_CROWN_R2S_A2 LC-STAGE_CROWN_R2S_A2 SN-STAGE_CROWN_T2S LC-STAGE_CROWN_T2S SN-STAGE_CROWN_T2S_A2 LC-STAGE_CROWN_T2S_A2 SN-STAGE_CROWN_TRUE_PD_MAP LC-STAGE_CROWN_TRUE_PD_MAP SN-STAGE_CROWN_TRUE_PD_MAPa LC-STAGE_CROWN_TRUE_PD_MAPa SN-STAGE_HPF_ECHO-3_e3 LC-STAGE_HPF_ECHO-3_e3 SN-STAGE_KMAP LC-STAGE_KMAP SN-STAGE_MRA_e3 LC-STAGE_MRA_e3 SN-STAGE_PD_MAP LC-STAGE_PD_MAP SN-STAGE_R2S_MIP_e3 LC-STAGE_R2S_MIP_e3 SN-STAGE_R2S_e3 LC-STAGE_R2S_e3 SN-STAGE_SWI_ECHO-3_e3 LC-STAGE_SWI_ECHO-3_e3 SN-STAGE_SWI_mIP_ECHO-3_e3 LC-STAGE_SWI_mIP_ECHO-3_e3 SN-STAGE_T1MAP LC-STAGE_T1MAP SN-STAGE_T1WE LC-STAGE_T1WE SN-STAGE_T2S_MIP_e3 LC-STAGE_T2S_MIP_e3 SN-STAGE_T2S_e3 LC-STAGE_T2S_e3 SN-STAGE_TRUE_PD_MAP LC-STAGE_TRUE_PD_MAP SN-STAGE_dSWI_ECHO-3_e3 LC-STAGE_dSWI_ECHO-3_e3 SN-STAGE_dSWI_mIP_ECHO-3_e3 LC-STAGE_dSWI_mIP_ECHO-3_e3 SN-STAGE_meSWIM LC-STAGE_meSWIM SN-STAGE_meSWIM_HPF_ LC-STAGE_meSWIM_HPF_ SN-STAGE_meSWIM_HPF_filled LC-STAGE_meSWIM_HPF_filled SN-STAGE_meSWIM_filled LC-STAGE_meSWIM_filled SN-STAGE_meSWIM_filled_MIP LC-STAGE_meSWIM_filled_MIP SN-STAGE_mpSWIM_ECHO-3_e3 LC-STAGE_mpSWIM_ECHO-3_e3 SN-STAGE_pSWIM_ECHO-3_e3 LC-STAGE_pSWIM_ECHO-3_e3 SN-STAGE_simCSF LC-STAGE_simCSF SN-STAGE_simFLAIR LC-STAGE_simFLAIR SN-STAGE_simGM LC-STAGE_simGM SN-STAGE_simWM LC-STAGE_simWM SN-STAGE_sim_GRE LC-STAGE_sim_GRE SN-STAGE_sim_GREa LC-STAGE_sim_GREa SN-STAGE_tSWI_ECHO-3_e3 LC-STAGE_tSWI_ECHO-3_e3 SN-STAGE_tSWI_mIP_ECHO-3_e3 LC-STAGE_tSWI_mIP_ECHO-3_e3 SN-STAGE_tSWIhpf_ECHO-3_e3 LC-STAGE_tSWIhpf_ECHO-3_e3") 
-
-echo "$header" > $HOME/masterproject/results_0702
+results_file="$HOME/masterproject/results_0902.csv"
 
 export PATH=$PATH:/Applications/MATLAB_R2022b.app/bin
 
@@ -23,9 +19,14 @@ do
     do
     
         patient_id=$(basename $subject_dir)
-        mean=("$patient_id ")
+        mean=("$patient_id")
             
         echo "Processing subject with patient_id: $patient_id"
+
+        if grep -q $patient_id $results_file
+        then
+            continue
+        fi
         
         if [ ! -d "$subject_dir/results" ]
         then
@@ -70,6 +71,7 @@ do
         fi
         mprage_reg_mni="$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii"
         
+        header=("patient_id")
         
         for image in $result_dir/STAGE/STAGE_*.nii
         do
@@ -77,7 +79,12 @@ do
 
             name=$(basename $image .nii)
 
-            echo $name
+            echo "${name#??????}"
+
+            header+=",SN ${name#??????}"
+            header+=",SN_R ${name#??????}"
+            header+=",SN_L ${name#??????}"
+            header+=",LC ${name#??????}"
             
             # Register STAGE images to MPRAGE
             if [ ! -f "$result_dir/${name}_reg_mprage.nii.gz" ]
@@ -98,6 +105,18 @@ do
                 fslmaths $result_dir/STAGE/reg_${name} -mas $sn $result_dir/${name}_sn
             fi
 
+            # Make mask of right SN
+            if [ ! -f "$result_dir/${name}_sn_r.nii.gz" ]
+            then
+                fslmaths $result_dir/STAGE/reg_${name} -mas $sn_r $result_dir/${name}_sn_r
+            fi
+
+            # Make mask of left SN
+            if [ ! -f "$result_dir/${name}_sn_l.nii.gz" ]
+            then
+                fslmaths $result_dir/STAGE/reg_${name} -mas $sn_l $result_dir/${name}_sn_l
+            fi
+
             # Make mask of LC
             if [ ! -f "$result_dir/${name}_lc.nii.gz" ]
             then
@@ -105,15 +124,26 @@ do
             fi
 
             # Mean of mask of SN
-            mean+=$(fslstats $result_dir/${name}_sn.nii.gz -M)
+            mean+=","$(fslstats $result_dir/${name}_sn.nii.gz -M)
+
+            # Mean of mask of right SN
+            mean+=","$(fslstats $result_dir/${name}_sn_r.nii.gz -M)
+
+            # Mean of mask of left SN
+            mean+=","$(fslstats $result_dir/${name}_sn_l.nii.gz -M)
             
             # Mean of mask of LC
-            mean+=$(fslstats $result_dir/${name}_lc.nii.gz -M)
+            mean+=","$(fslstats $result_dir/${name}_lc.nii.gz -M)
             
         done
 
+        if [ ! -f $results_file ]
+        then
+            echo "$header" > $results_file
+        fi
+
         # Write mean to file
-        echo "$mean" >> $HOME/masterproject/results_0702
+        echo "$mean" >> $results_file
         
     done
 done
