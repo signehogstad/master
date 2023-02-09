@@ -3,6 +3,8 @@ set -e
 set -u
 set -o pipefail
 
+# Testing testing
+
 strat_park="/Volumes/MRI/STRAT-PARK"
 sn_r="$HOME/masterproject/SN_R_probatlas27_50.nii"
 sn_l="$HOME/masterproject/SN_L_probatlas27_50.nii"
