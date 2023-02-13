@@ -4,24 +4,32 @@ set -u
 set -o pipefail
 
 strat_park="/Volumes/MRI/STRAT-PARK"
+sn="$HOME/masterproject/SN_mask.nii.gz"
 sn_r="$HOME/masterproject/SN_R_probatlas27_50.nii"
 sn_l="$HOME/masterproject/SN_L_probatlas27_50.nii"
-sn="$HOME/masterproject/SN_mask.nii.gz"
 lc="$HOME/masterproject/LC_mask.nii.gz"
+lc_r="$HOME/masterproject/LC_mask_R.nii.gz"
+lc_l="$HOME/masterproject/LC_mask_L.nii.gz"
 
-results_file="$HOME/masterproject/results_0902.csv"
+results_file="$HOME/masterproject/results_1302.csv"
 
 export PATH=$PATH:/Applications/MATLAB_R2022b.app/bin
 
 for dir in $strat_park/*
 do
-    for subject_dir in $dir/DICOM/*
+    xml_file="$dir/SECTRA/CONTENT.xml"
+    pairs=$(xmlstarlet sel -t -m "//patient" -v "concat(@id,':',patient_data/personal_id,' ')" "$xml_file")
+    for pair in $pairs
     do
-    
-        patient_id=$(basename $subject_dir)
-        mean=("$patient_id")
-            
-        echo "Processing subject with patient_id: $patient_id"
+        patient_id=$(echo "$pair" | cut -d: -f1)
+        personal_id=$(echo "$pair" | cut -d: -f2)
+        echo ""
+        echo "Personal ID: ${personal_id#???????????}"
+        echo "Patient ID: $patient_id"
+        echo ""
+
+        subject_dir="$dir/DICOM/$patient_id"
+        mean=("${personal_id#???????????},$patient_id")
 
         if grep -q $patient_id $results_file
         then
@@ -71,7 +79,7 @@ do
         fi
         mprage_reg_mni="$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii"
         
-        header=("patient_id")
+        header=("personal_id,patient_id")
         
         for image in $result_dir/STAGE/STAGE_*.nii
         do
@@ -85,6 +93,8 @@ do
             header+=",SN_R ${name#??????}"
             header+=",SN_L ${name#??????}"
             header+=",LC ${name#??????}"
+            header+=",LC_R ${name#??????}"
+            header+=",LC_L ${name#??????}"
             
             # Register STAGE images to MPRAGE
             if [ ! -f "$result_dir/${name}_reg_mprage.nii.gz" ]
@@ -123,6 +133,18 @@ do
                 fslmaths $result_dir/STAGE/reg_${name} -mas $lc $result_dir/${name}_lc
             fi
 
+            # Make mask of right LC
+            if [ ! -f "$result_dir/${name}_lc_r.nii.gz" ]
+            then
+                fslmaths $result_dir/STAGE/reg_${name} -mas $lc_r $result_dir/${name}_lc_r
+            fi
+
+            # Make mask of left LC
+            if [ ! -f "$result_dir/${name}_lc_l.nii.gz" ]
+            then
+                fslmaths $result_dir/STAGE/reg_${name} -mas $lc_l $result_dir/${name}_lc_l
+            fi
+
             # Mean of mask of SN
             mean+=","$(fslstats $result_dir/${name}_sn.nii.gz -M)
 
@@ -134,6 +156,12 @@ do
             
             # Mean of mask of LC
             mean+=","$(fslstats $result_dir/${name}_lc.nii.gz -M)
+
+            # Mean of mask of right LC
+            mean+=","$(fslstats $result_dir/${name}_lc_r.nii.gz -M)
+
+            # Mean of mask of left LC
+            mean+=","$(fslstats $result_dir/${name}_lc_l.nii.gz -M)
             
         done
 
