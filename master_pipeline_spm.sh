@@ -29,6 +29,13 @@ do
         echo ""
 
         subject_dir="$dir/DICOM/$patient_id"
+
+        if [ ! -d "$subject_dir" ]
+        then
+            echo "Directory does not exist"
+            continue
+        fi
+
         mean=("${personal_id#???????????},$patient_id")
 
         if grep -q $patient_id $results_file
