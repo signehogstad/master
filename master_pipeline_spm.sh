@@ -11,7 +11,7 @@ lc="$HOME/masterproject/LC_mask.nii.gz"
 lc_r="$HOME/masterproject/LC_mask_R.nii.gz"
 lc_l="$HOME/masterproject/LC_mask_L.nii.gz"
 
-results_file="$HOME/masterproject/results_1302.csv"
+results_file="$HOME/masterproject/results_000037D3.csv"
 
 export PATH=$PATH:/Applications/MATLAB_R2022b.app/bin
 
@@ -27,6 +27,14 @@ do
         echo "Personal ID: ${personal_id#???????????}"
         echo "Patient ID: $patient_id"
         echo ""
+
+        if [ $patient_id != "000037D3" ]
+        then
+            echo "Not 000037D3"
+            continue
+        fi
+
+        echo "Yesssssssssss"
 
         subject_dir="$dir/DICOM/$patient_id"
 
@@ -68,23 +76,23 @@ do
         then
             /Applications/MRIcroGL.app/Contents/Resources/dcm2niix -f %p -o $result_dir $subject_dir/*t1_mprage_sag_p2_iso_PACS
         fi
-        mprage="$result_dir/t1_mprage_sag_p2_iso_PACS.nii"
+        mprage="$subject_dir/06-t1_mprage_sag_p2_iso_PACS/06-t1_mprage_sag_p2_iso_PACS_t1_mprage_sag_p2_iso_PACS_20211008131138_6.nii"
 
 
         # Register T1WE to MPRAGE
-        if [ ! -f "$result_dir/t1we2mprage.mat" ]
-        then
+        #if [ ! -f "$result_dir/t1we2mprage.mat" ]
+        #then
             flirt -in $t1we -ref $mprage -omat $result_dir/t1we2mprage.mat -out $result_dir/t1we_reg_mprage
-        fi
+        #fi
         t1we_reg_mni="$result_dir/t1we_reg_mprage.nii.gz"
         
 
         # Register MPRAGE to MNI
-        if [ ! -f "$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii" ]
-        then
+        #if [ ! -f "$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii" ]
+        #then
             matlab -nodisplay -r "reg_spm('$mprage'),exit";
-        fi
-        mprage_reg_mni="$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii"
+        #fi
+        mprage_reg_mni="$subject_dir/06-t1_mprage_sag_p2_iso_PACS/reg_06-t1_mprage_sag_p2_iso_PACS_t1_mprage_sag_p2_iso_PACS_20211008131138_6.nii"
         
         header=("personal_id,patient_id")
         
@@ -104,53 +112,53 @@ do
             header+=",LC_L ${name#??????}"
             
             # Register STAGE images to MPRAGE
-            if [ ! -f "$result_dir/${name}_reg_mprage.nii.gz" ]
-            then
+            #if [ ! -f "$result_dir/${name}_reg_mprage.nii.gz" ]
+            #then
                 flirt -in $image -ref $mprage -out $result_dir/${name}_reg_mprage -init $result_dir/t1we2mprage.mat -applyxfm
-            fi
+            #fi
             
             # Register STAGE images to MNI
-            if [ ! -f "$result_dir/STAGE/reg_${name}.nii" ]
-            then
-                matlab -nodisplay -r "write_job('$result_dir/y_t1_mprage_sag_p2_iso_PACS.nii','$image'),exit";
-            fi
+            #if [ ! -f "$result_dir/STAGE/reg_${name}.nii" ]
+            #then
+                matlab -nodisplay -r "write_job('$subject_dir/06-t1_mprage_sag_p2_iso_PACS/y_06-t1_mprage_sag_p2_iso_PACS_t1_mprage_sag_p2_iso_PACS_20211008131138_6.nii','$image'),exit";
+            #fi
             
             
             # Make mask of SN
-            if [ ! -f "$result_dir/${name}_sn.nii.gz" ]
-            then
+            #if [ ! -f "$result_dir/${name}_sn.nii.gz" ]
+            #then
                 fslmaths $result_dir/STAGE/reg_${name} -mas $sn $result_dir/${name}_sn
-            fi
+            #fi
 
             # Make mask of right SN
-            if [ ! -f "$result_dir/${name}_sn_r.nii.gz" ]
-            then
+            #if [ ! -f "$result_dir/${name}_sn_r.nii.gz" ]
+            #then
                 fslmaths $result_dir/STAGE/reg_${name} -mas $sn_r $result_dir/${name}_sn_r
-            fi
+            #fi
 
             # Make mask of left SN
-            if [ ! -f "$result_dir/${name}_sn_l.nii.gz" ]
-            then
+            #if [ ! -f "$result_dir/${name}_sn_l.nii.gz" ]
+            #then
                 fslmaths $result_dir/STAGE/reg_${name} -mas $sn_l $result_dir/${name}_sn_l
-            fi
+            #fi
 
             # Make mask of LC
-            if [ ! -f "$result_dir/${name}_lc.nii.gz" ]
-            then
+            #if [ ! -f "$result_dir/${name}_lc.nii.gz" ]
+            #then
                 fslmaths $result_dir/STAGE/reg_${name} -mas $lc $result_dir/${name}_lc
-            fi
+            #fi
 
             # Make mask of right LC
-            if [ ! -f "$result_dir/${name}_lc_r.nii.gz" ]
-            then
+            #if [ ! -f "$result_dir/${name}_lc_r.nii.gz" ]
+            #then
                 fslmaths $result_dir/STAGE/reg_${name} -mas $lc_r $result_dir/${name}_lc_r
-            fi
+            #fi
 
             # Make mask of left LC
-            if [ ! -f "$result_dir/${name}_lc_l.nii.gz" ]
-            then
+            #if [ ! -f "$result_dir/${name}_lc_l.nii.gz" ]
+            #then
                 fslmaths $result_dir/STAGE/reg_${name} -mas $lc_l $result_dir/${name}_lc_l
-            fi
+            #fi
 
             # Mean of mask of SN
             mean+=","$(fslstats $result_dir/${name}_sn.nii.gz -M)
