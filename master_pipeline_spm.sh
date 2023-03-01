@@ -11,7 +11,7 @@ lc="$HOME/masterproject/LC_mask.nii.gz"
 lc_r="$HOME/masterproject/LC_mask_R.nii.gz"
 lc_l="$HOME/masterproject/LC_mask_L.nii.gz"
 
-results_file="$HOME/masterproject/results_000037D3.csv"
+results_file="$HOME/masterproject/results_0000F612.csv"
 
 export PATH=$PATH:/Applications/MATLAB_R2022b.app/bin
 
@@ -28,9 +28,9 @@ do
         echo "Patient ID: $patient_id"
         echo ""
 
-        if [ $patient_id != "000037D3" ]
+        if [ $patient_id != "0000F612" ]
         then
-            echo "Not 000037D3"
+            echo "Not 0000F612"
             continue
         fi
 
@@ -76,23 +76,23 @@ do
         then
             /Applications/MRIcroGL.app/Contents/Resources/dcm2niix -f %p -o $result_dir $subject_dir/*t1_mprage_sag_p2_iso_PACS
         fi
-        mprage="$subject_dir/06-t1_mprage_sag_p2_iso_PACS/06-t1_mprage_sag_p2_iso_PACS_t1_mprage_sag_p2_iso_PACS_20211008131138_6.nii"
+        mprage="$result_dir/t1_mprage_sag_p2_iso_PACS.nii"
 
 
         # Register T1WE to MPRAGE
-        #if [ ! -f "$result_dir/t1we2mprage.mat" ]
-        #then
+        if [ ! -f "$result_dir/t1we2mprage.mat" ]
+        then
             flirt -in $t1we -ref $mprage -omat $result_dir/t1we2mprage.mat -out $result_dir/t1we_reg_mprage
-        #fi
-        t1we_reg_mni="$result_dir/t1we_reg_mprage.nii.gz"
+        fi
+        t1we_reg_mprage="$result_dir/t1we_reg_mprage.nii.gz"
         
 
         # Register MPRAGE to MNI
-        #if [ ! -f "$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii" ]
-        #then
+        if [ ! -f "$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii" ]
+        then
             matlab -nodisplay -r "reg_spm('$mprage'),exit";
-        #fi
-        mprage_reg_mni="$subject_dir/06-t1_mprage_sag_p2_iso_PACS/reg_06-t1_mprage_sag_p2_iso_PACS_t1_mprage_sag_p2_iso_PACS_20211008131138_6.nii"
+        fi
+        mprage_reg_mni="$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii"
         
         header=("personal_id,patient_id")
         
@@ -105,7 +105,7 @@ do
             echo "${name#??????}"
 
             header+=",SN ${name#??????}"
-            header+=",SN_R ${name#??????}"
+            header+=",SN_R ${name#?????}"
             header+=",SN_L ${name#??????}"
             header+=",LC ${name#??????}"
             header+=",LC_R ${name#??????}"
@@ -114,13 +114,13 @@ do
             # Register STAGE images to MPRAGE
             #if [ ! -f "$result_dir/${name}_reg_mprage.nii.gz" ]
             #then
-                flirt -in $image -ref $mprage -out $result_dir/${name}_reg_mprage -init $result_dir/t1we2mprage.mat -applyxfm
+                flirt -in $image -ref $mprage_reg_mni -out $result_dir/${name}_reg_mprage -init $result_dir/t1we2mprage.mat -applyxfm
             #fi
             
             # Register STAGE images to MNI
             #if [ ! -f "$result_dir/STAGE/reg_${name}.nii" ]
             #then
-                matlab -nodisplay -r "write_job('$subject_dir/06-t1_mprage_sag_p2_iso_PACS/y_06-t1_mprage_sag_p2_iso_PACS_t1_mprage_sag_p2_iso_PACS_20211008131138_6.nii','$image'),exit";
+                matlab -nodisplay -r "write_job('$result_dir/y_t1_mprage_sag_p2_iso_PACS.nii','$image'),exit";
             #fi
             
             
