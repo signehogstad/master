@@ -11,7 +11,7 @@ lc="$HOME/masterproject/LC_mask.nii.gz"
 lc_r="$HOME/masterproject/LC_mask_R.nii.gz"
 lc_l="$HOME/masterproject/LC_mask_L.nii.gz"
 
-results_file="$HOME/masterproject/results_0000F612.csv"
+results_file="$HOME/masterproject/results_00004943.csv"
 
 export PATH=$PATH:/Applications/MATLAB_R2022b.app/bin
 
@@ -28,9 +28,9 @@ do
         echo "Patient ID: $patient_id"
         echo ""
 
-        if [ $patient_id != "0000F612" ]
+        if [ $patient_id != "00004943" ]
         then
-            echo "Not 0000F612"
+            echo "Not right"
             continue
         fi
 
@@ -80,18 +80,18 @@ do
 
 
         # Register T1WE to MPRAGE
-        if [ ! -f "$result_dir/t1we2mprage.mat" ]
-        then
-            flirt -in $t1we -ref $mprage -omat $result_dir/t1we2mprage.mat -out $result_dir/t1we_reg_mprage
-        fi
+        #if [ ! -f "$result_dir/t1we2mprage.mat" ]
+        #then
+        flirt -in $t1we -ref $mprage -omat $result_dir/t1we2mprage.mat -out $result_dir/t1we_reg_mprage
+        #fi
         t1we_reg_mprage="$result_dir/t1we_reg_mprage.nii.gz"
         
 
         # Register MPRAGE to MNI
-        if [ ! -f "$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii" ]
-        then
-            matlab -nodisplay -r "reg_spm('$mprage'),exit";
-        fi
+        #if [ ! -f "$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii" ]
+        #then
+        matlab -nodisplay -r "reg_spm('$mprage'),exit";
+        #fi
         mprage_reg_mni="$result_dir/reg_t1_mprage_sag_p2_iso_PACS.nii"
         
         header=("personal_id,patient_id")
